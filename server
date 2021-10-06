@@ -1,0 +1,80 @@
+package server;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+
+public class Calculation extends Thread{
+    private Socket socket;
+    public Calculation(Socket socket1){
+        this.socket=socket1;
+    }
+    @Override
+    public void run() {
+        try {
+            InputStream inputStream = socket.getInputStream();
+            OutputStream outputStream=socket.getOutputStream();
+            byte[] num =new byte[2];
+            inputStream.read(num);
+            outputStream.write(num);/////////
+            for(int i=0;i<((int)num[0])*10+(int)num[1];i++){//大端
+              byte[]  length=new byte[2];
+              inputStream.read(length);
+              int intlength=((int)length[0])*10+(int)length[1];//
+               if(intlength>16){
+                  System.out.println("TODO......");
+              }
+              else{
+                  byte[] math=new byte[intlength];
+                  inputStream.read(math);
+                  byte c=0;
+                  int result=0;
+                  int flag=1;
+                  int temp=0;
+                  for(int j=0;j<intlength;j++){
+                      c=math[j];
+                      if(c=='+'){
+                          result=result+flag*temp;
+                          flag=1;temp=0;
+                      }
+                      else if(c=='-'){
+                          result=result+flag*temp;
+                          flag=-1;temp=0;
+                      }
+                      else{
+                          temp=temp*10+(int)c;
+                      }
+                  }
+                   result=result+flag*temp;
+                  int resultbufflength=0;
+                  int re=result;
+                    while(re!=0){
+                        resultbufflength++;
+                        re/=10;
+                    }
+                    byte[] resultlegthbuff=this.toenddian(resultbufflength);
+                    outputStream.write(resultlegthbuff);
+                    byte[] resultbuff=new byte[resultbufflength];
+                    for(int j=resultbufflength-1;j>=0;j--){
+                        byte m=(byte)(result%10);
+                        result/=10;
+                        resultbuff[j]=m;
+                    }
+                    outputStream.write(resultbuff);
+               }
+            }
+            inputStream.close();
+            outputStream.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    byte[] toenddian(int a){
+        byte[] by=new  byte[2];
+        by[1]=(byte)(a&0xff);
+        by[0]=(byte)((a>>8)&0xff);
+        return  by;
+    }
+}
